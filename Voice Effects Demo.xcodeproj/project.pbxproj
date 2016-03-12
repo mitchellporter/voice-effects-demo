@@ -13,6 +13,7 @@
 		C395A1E11C938496009C7A62 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C395A1E01C938496009C7A62 /* Assets.xcassets */; };
 		C395A1E41C938496009C7A62 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C395A1E21C938496009C7A62 /* LaunchScreen.storyboard */; };
 		C395A1EC1C938510009C7A62 /* PlayAudioViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C395A1EB1C938510009C7A62 /* PlayAudioViewController.swift */; };
+		C395A1F01C93AB1C009C7A62 /* farah-faucet.wav in Resources */ = {isa = PBXBuildFile; fileRef = C395A1EF1C93AB1C009C7A62 /* farah-faucet.wav */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +25,7 @@
 		C395A1E31C938496009C7A62 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		C395A1E51C938496009C7A62 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		C395A1EB1C938510009C7A62 /* PlayAudioViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PlayAudioViewController.swift; sourceTree = "<group>"; };
+		C395A1EF1C93AB1C009C7A62 /* farah-faucet.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "farah-faucet.wav"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,11 +60,12 @@
 			children = (
 				C395A1D91C938496009C7A62 /* AppDelegate.swift */,
 				C395A1DB1C938496009C7A62 /* ViewController.swift */,
+				C395A1EB1C938510009C7A62 /* PlayAudioViewController.swift */,
 				C395A1DD1C938496009C7A62 /* Main.storyboard */,
 				C395A1E01C938496009C7A62 /* Assets.xcassets */,
 				C395A1E21C938496009C7A62 /* LaunchScreen.storyboard */,
 				C395A1E51C938496009C7A62 /* Info.plist */,
-				C395A1EB1C938510009C7A62 /* PlayAudioViewController.swift */,
+				C395A1EF1C93AB1C009C7A62 /* farah-faucet.wav */,
 			);
 			path = "Voice Effects Demo";
 			sourceTree = "<group>";
@@ -128,6 +131,7 @@
 				C395A1E41C938496009C7A62 /* LaunchScreen.storyboard in Resources */,
 				C395A1E11C938496009C7A62 /* Assets.xcassets in Resources */,
 				C395A1DF1C938496009C7A62 /* Main.storyboard in Resources */,
+				C395A1F01C93AB1C009C7A62 /* farah-faucet.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -288,6 +292,7 @@
 				C395A1EA1C938496009C7A62 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
