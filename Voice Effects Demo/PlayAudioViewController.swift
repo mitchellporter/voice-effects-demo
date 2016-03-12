@@ -19,10 +19,10 @@ class PlayAudioViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        let path = NSBundle.mainBundle().pathForResource("farah-faucet.wav", ofType: nil)
-        
-        recordedAudio = RecordedAudio()
-        recordedAudio.filePathURL = NSURL(fileURLWithPath: path!)
+//        let path = NSBundle.mainBundle().pathForResource("farah-faucet.wav", ofType: nil)
+//        
+//        recordedAudio = RecordedAudio()
+//        recordedAudio.filePathURL = NSURL(fileURLWithPath: path!)
         
         audioEngine = AVAudioEngine()
         
@@ -136,6 +136,14 @@ class PlayAudioViewController: UIViewController {
     
     func playPitch(pitch: Float)
     {
+        // 1. Create nodes
+        
+        // 2. Attach nodes to engine
+        
+        // 3. Connect nodes
+        
+        // 4. Last node connects to mainMixerNode
+        
         audioPlayer.stop()
         audioEngine.stop()
         audioEngine.reset()
