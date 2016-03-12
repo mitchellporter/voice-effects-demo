@@ -1,0 +1,19 @@
+PODS:
+  - SCRecorder (2.6.1)
+
+DEPENDENCIES:
+  - SCRecorder (from `https://github.com/mitchellporter/SCRecorder.git`)
+
+EXTERNAL SOURCES:
+  SCRecorder:
+    :git: https://github.com/mitchellporter/SCRecorder.git
+
+CHECKOUT OPTIONS:
+  SCRecorder:
+    :commit: 34bbceed13eca8751bcfd5b4f072bc7690df833a
+    :git: https://github.com/mitchellporter/SCRecorder.git
+
+SPEC CHECKSUMS:
+  SCRecorder: ef11bc34094c43201cc7c94fa9aeb5266e5b9cf7
+
+COCOAPODS: 0.39.0
