@@ -12,25 +12,36 @@ import AVFoundation
 class PlayAudioViewController: UIViewController {
     
     var audioPlayer: AVAudioPlayer!
-    var recordedAudio: RecordedAudio!
+    var recordedAudio: RecordedAudio?
     var audioEngine: AVAudioEngine!
     var audioFile: AVAudioFile!
+    
+    
+    var currentPitch: Float = 1.0
+    var currentRate: Float = 1.0
+    var currentVolume: Float = 1.0
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-//        let path = NSBundle.mainBundle().pathForResource("farah-faucet.wav", ofType: nil)
-//        
-//        recordedAudio = RecordedAudio()
-//        recordedAudio.filePathURL = NSURL(fileURLWithPath: path!)
+        if recordedAudio == nil {
+            let path = NSBundle.mainBundle().pathForResource("farah-faucet.wav", ofType: nil)
+            recordedAudio = RecordedAudio()
+            recordedAudio!.filePathURL = NSURL(fileURLWithPath: path!)
+        }
         
+        // Setup audio engine + player
         audioEngine = AVAudioEngine()
-        
-        audioPlayer = try? AVAudioPlayer(contentsOfURL: recordedAudio.filePathURL)
+        audioPlayer = try? AVAudioPlayer(contentsOfURL: recordedAudio!.filePathURL)
+        audioPlayer.numberOfLoops = 100 // Negative value = infinite loops
         audioPlayer.volume = 50.0
-        audioPlayer.enableRate = true;
+        audioPlayer.enableRate = true
         
-        audioFile = try? AVAudioFile(forReading: recordedAudio.filePathURL)
+        audioFile = try? AVAudioFile(forReading: recordedAudio!.filePathURL)
+        
+        self.play()
+        
+        
         // Do any additional setup after loading the view.
         
         
@@ -102,18 +113,32 @@ class PlayAudioViewController: UIViewController {
         
     }
     
+    @IBAction func volumeChanged(sender: UISlider) {
+        currentVolume = sender.value
+    }
+    
+    @IBAction func pitchChanged(sender: UISlider) {
+        currentPitch = sender.value
+    }
+    
+    @IBAction func rateChanged(sender: UISlider) {
+        currentRate = sender.value
+    }
+
+    
     @IBAction func playChipmunk(sender: UIButton) {
-        
-        playPitch(1000)
+        currentPitch = 1000
+        play()
     }
     
     @IBAction func playDarthVader(sender: UIButton) {
-        
-        playPitch(-1000)
+        currentPitch = -1200
+        play()
     }
     
     @IBAction func flamboyantEffect() {
-        playPitch(-500)
+        currentPitch = -500
+        play()
     }
     
     @IBAction func playTesting() {
@@ -131,11 +156,10 @@ class PlayAudioViewController: UIViewController {
     @IBAction func playSlow(sender: UIButton) {
         audioPlayer.rate = 0.5;
         audioPlayer.play();
-        
     }
     
-    func playPitch(pitch: Float)
-    {
+    func play() {
+        
         // 1. Create nodes
         
         // 2. Attach nodes to engine
@@ -153,13 +177,12 @@ class PlayAudioViewController: UIViewController {
         audioEngine.attachNode(pitchPlayer)
         
         let timePitch = AVAudioUnitTimePitch()
-        timePitch.pitch = pitch
-        audioEngine.attachNode(timePitch)
+        timePitch.pitch = currentPitch // In cents. The default value is 1.0. The range of values is -2400 to 2400
+//        timePitch.rate = 2;
+        audioEngine.attachNode(timePitch) //The default value is 1.0. The range of supported values is 1/32 to 32.0.
         
         audioEngine.connect(pitchPlayer, to: timePitch, format: nil)
         audioEngine.connect(timePitch, to: audioEngine.mainMixerNode, format: nil)
-//        audioEngine.connect(pitchPlayer, to: audioEngine.outputNode, format: nil)
-        
         
         pitchPlayer.scheduleFile(audioFile, atTime: nil, completionHandler: nil)
         do {
