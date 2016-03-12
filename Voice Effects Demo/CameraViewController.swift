@@ -12,15 +12,22 @@ import SCRecorder
 class CameraViewController: UIViewController {
     
     @IBOutlet weak var previewView: UIView!
+    
+    
+    // MARK: SCRecorder
     let recorder = SCRecorder()
     var recordSession: SCRecordSession?
     let recordingTimeLimit: Int64 = 8 // 20 second video record time limit
     var player: SCPlayer?
     var playerLayer: AVPlayerLayer?
+    
+    // MARK: AudioEngine
+    let audioEngine  = AVAudioEngine()
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
+        setupAudioEngine()
         setupRecorder()
         recorder.startRunning()
     }
@@ -30,9 +37,35 @@ class CameraViewController: UIViewController {
         
         recorder.previewViewFrameChanged()
     }
+    
+    func setupAudioEngine() {
+        
+        // Install a tap on bus 0 aka the microphone
+        let inputNode = audioEngine.inputNode
+        let bus = 0
+        inputNode!.installTapOnBus(bus, bufferSize: 2048, format:inputNode!.inputFormatForBus(bus)) {
+            (buffer: AVAudioPCMBuffer!, time: AVAudioTime!) -> Void in
+            print(time)
+        }
+        
+        audioEngine.prepare()
+        NSTimer.scheduledTimerWithTimeInterval(2.0, target: self, selector: "startRecordingAudio", userInfo: nil, repeats: false)
+    }
+    
+    func startRecordingAudio() {
+        do {
+            try audioEngine.start()
+        } catch _ {
+            print("AUDIO ENGINE CATCH")
+        }
+        NSTimer.scheduledTimerWithTimeInterval(5.0, target: self, selector: "stopRecordingAudio", userInfo: nil, repeats: false)
+    }
+    
+    func stopRecordingAudio() {
+        audioEngine.stop()
+    }
 
     func setupRecorder() {
-        
         print("Setup resoluton: \(SCRecorderTools.bestCaptureSessionPresetCompatibleWithAllDevices())")
         recorder.captureSessionPreset = SCRecorderTools.bestCaptureSessionPresetCompatibleWithAllDevices()
         print(recorder.captureSessionPreset)
@@ -58,7 +91,12 @@ class CameraViewController: UIViewController {
             recorder.session = session
         }
         // Start recording
+        startRecordingAudio()
         recorder.record()
+    }
+    
+    @IBAction func playAudioButtonPressed() {
+        
     }
 }
 
