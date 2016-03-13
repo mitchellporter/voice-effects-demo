@@ -212,7 +212,7 @@ class CameraViewController: UIViewController {
     
     func stopRecordingAudio() {
         audioEngine.inputNode?.removeTapOnBus(0)
-        audioEngine.stop()
+//        audioEngine.stop()
         
         // Playback the audio we've captured
 //        playRecordedAudio()
@@ -230,7 +230,14 @@ class CameraViewController: UIViewController {
             
         }
         
-        audioPlayer.play()
+        pitchPlayer.scheduleFile(audioFile, atTime: nil, completionHandler: nil)
+        do {
+            try audioEngine.start()
+        } catch _ {
+        }
+        pitchPlayer.play()
+        
+//        audioPlayer.play()
     }
 
     func setupRecorder() {
