@@ -26,6 +26,11 @@ class CameraViewController: UIViewController {
     var audioPlayer: AVAudioPlayer!
     var audioFile: AVAudioFile!
     
+    // Nodes
+    var pitchPlayer: AVAudioPlayerNode!
+    var timePitch: AVAudioUnitTimePitch!
+    
+    // Url of recording
     var recordedAudioURL: NSURL!
 
 
@@ -46,7 +51,17 @@ class CameraViewController: UIViewController {
     func setupAudioEngine() {
         
 //        audioEngine.prepare()
-
+        
+        pitchPlayer = AVAudioPlayerNode()
+        pitchPlayer.volume = 1.0
+        audioEngine.attachNode(pitchPlayer)
+        
+        timePitch = AVAudioUnitTimePitch()
+        timePitch.pitch = 1000 // In cents. The default value is 1.0. The range of values is -2400 to 2400
+        audioEngine.attachNode(timePitch) //The default value is 1.0. The range of supported values is 1/32 to 32.0.
+        
+        audioEngine.connect(pitchPlayer, to: timePitch, format: nil)
+        audioEngine.connect(timePitch, to: audioEngine.mainMixerNode, format: nil)
         
         let dirPath = NSSearchPathForDirectoriesInDomains(.DocumentDirectory,.UserDomainMask,true)[0] as String
         
@@ -119,28 +134,7 @@ class CameraViewController: UIViewController {
         }  catch let error as NSError {
                 print("Failed to create audio player")
                 print(error.localizedDescription)
-            
         }
-        audioPlayer.numberOfLoops = 100 // Negative value = infinite loops
-        audioPlayer.volume = 50.0
-        audioPlayer.enableRate = true
-        
-//        audioFile = try? AVAudioFile(forReading: recordedAudioURL)
-        
-        audioPlayer.stop()
-        audioEngine.stop()
-        audioEngine.reset()
-        
-        let pitchPlayer = AVAudioPlayerNode()
-        pitchPlayer.volume = 1.0
-        audioEngine.attachNode(pitchPlayer)
-        
-        let timePitch = AVAudioUnitTimePitch()
-        timePitch.pitch = 1000 // In cents. The default value is 1.0. The range of values is -2400 to 2400
-        audioEngine.attachNode(timePitch) //The default value is 1.0. The range of supported values is 1/32 to 32.0.
-        
-        audioEngine.connect(pitchPlayer, to: timePitch, format: nil)
-        audioEngine.connect(timePitch, to: audioEngine.mainMixerNode, format: nil)
         
         pitchPlayer.scheduleFile(audioFile, atTime: nil, completionHandler: nil)
         do {
