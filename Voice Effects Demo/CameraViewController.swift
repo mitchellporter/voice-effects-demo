@@ -17,7 +17,7 @@ class CameraViewController: UIViewController {
     // MARK: SCRecorder
     let recorder = SCRecorder()
     var recordSession: SCRecordSession?
-    let recordingTimeLimit: Int64 = 8 // 20 second video record time limit
+    let recordingTimeLimit: Int64 = 10 // 20 second video record time limit
     var player: SCPlayer?
     var playerLayer: AVPlayerLayer?
     
@@ -32,7 +32,9 @@ class CameraViewController: UIViewController {
     
     // Url of recording
     var recordedAudioURL: NSURL!
-
+    var audioToolsTestURL: NSURL!
+    
+    var reverb = AVAudioUnitReverb()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -48,26 +50,54 @@ class CameraViewController: UIViewController {
         recorder.previewViewFrameChanged()
     }
     
-    func setupAudioEngine() {
+    func initializeAudioEngine() {
         
-//        audioEngine.prepare()
+        do {
+            try AVAudioSession.sharedInstance().setCategory(AVAudioSessionCategoryPlayAndRecord)
+            
+            let ioBufferDuration = 128.0 / 44100.0
+            
+            try AVAudioSession.sharedInstance().setPreferredIOBufferDuration(ioBufferDuration)
+            
+        } catch {
+            assertionFailure("AVAudioSession setup error: \(error)")
+        }
         
-        pitchPlayer = AVAudioPlayerNode()
-        pitchPlayer.volume = 1.0
-        audioEngine.attachNode(pitchPlayer)
         
-        timePitch = AVAudioUnitTimePitch()
-        timePitch.pitch = 1000 // In cents. The default value is 1.0. The range of values is -2400 to 2400
-        audioEngine.attachNode(timePitch) //The default value is 1.0. The range of supported values is 1/32 to 32.0.
         
-        audioEngine.connect(pitchPlayer, to: timePitch, format: nil)
-        audioEngine.connect(timePitch, to: audioEngine.mainMixerNode, format: nil)
+        let input = audioEngine.inputNode! //get the input node
+        let output = audioEngine.outputNode //get the output node
+        let format = input.inputFormatForBus(0) //format
+        
+        
+        //applying some reverb effects
+        reverb.loadFactoryPreset(.MediumChamber)
+        reverb.wetDryMix = 50
+        audioEngine.attachNode(reverb)
+        
+        //connecting the nodes
+        audioEngine.connect(input, to: reverb, format: format)
+        audioEngine.connect(reverb, to:audioEngine.mainMixerNode, format: format)
+        
+        // Setup engine and node instances
+        assert(audioEngine.inputNode != nil)
+        
+        // Start engine
+        do {
+            try audioEngine.start()
+        } catch {
+            assertionFailure("AVAudioEngine start error: \(error)")
+        }
+        //At this point, your engine is setup and you should here your sound input from microphone in your speaker/earphones.
+        //Now time to install tap on input bus to get buffered data:
         
         let dirPath = NSSearchPathForDirectoriesInDomains(.DocumentDirectory,.UserDomainMask,true)[0] as String
         
         let currentDateTime = NSDate();
         let formatter =  NSDateFormatter();
         formatter.dateFormat =  "ddMMyyyy-HHmmss";
+        
+        
         
         // NOTE: You have to use .aac, for some reason .m4a always saves an invalid file
         // The following link is also a perfect example of tapping microphone input
@@ -78,7 +108,73 @@ class CameraViewController: UIViewController {
         print(filePath)
         recordedAudioURL = filePath
         
+        var audioFileSettings = Dictionary<String, AnyObject>()
+        audioFileSettings[AVFormatIDKey]                 = NSNumber(unsignedInt: kAudioFormatMPEG4AAC)
+        audioFileSettings[AVNumberOfChannelsKey]         = 1
+        audioFileSettings[AVSampleRateKey]               = 44100.0
+        audioFileSettings[AVEncoderBitRatePerChannelKey] = 16
+        audioFileSettings[AVEncoderAudioQualityKey]      = AVAudioQuality.Medium.rawValue
 
+        
+        
+        do {
+            try self.audioFile = AVAudioFile(forWriting: recordedAudioURL, settings: audioFileSettings)
+        } catch let error as NSError {
+            print("Failed to create audio FILE")
+            print(error.localizedDescription)
+            
+        }
+
+        
+        audioEngine.inputNode?.installTapOnBus(0, bufferSize: 2048, format: format, block: { (buffer: AVAudioPCMBuffer!, time: AVAudioTime!) -> Void in
+            
+            //here you can examine the input data
+            print("sfdljk")
+            do {
+                print("Writing data to audio file...")
+                try self.audioFile.writeFromBuffer(buffer)
+            } catch let error as NSError {
+                print("Failed to create audio file")
+                print(error.localizedDescription)
+                
+            }
+        })
+    }
+    
+    func setupAudioEngine() {
+        
+//        audioEngine.prepare()
+        
+        let inputNode = audioEngine.inputNode
+
+        
+        pitchPlayer = AVAudioPlayerNode()
+        pitchPlayer.volume = 1.0
+        audioEngine.attachNode(pitchPlayer)
+        
+        timePitch = AVAudioUnitTimePitch()
+        timePitch.pitch = 1000 // In cents. The default value is 1.0. The range of values is -2400 to 2400
+        audioEngine.attachNode(timePitch) //The default value is 1.0. The range of supported values is 1/32 to 32.0.
+        
+        audioEngine.connect(timePitch, to: pitchPlayer, format: nil)
+        audioEngine.connect(pitchPlayer, to: audioEngine.mainMixerNode, format: nil)
+        
+        let dirPath = NSSearchPathForDirectoriesInDomains(.DocumentDirectory,.UserDomainMask,true)[0] as String
+        
+        let currentDateTime = NSDate();
+        let formatter =  NSDateFormatter();
+        formatter.dateFormat =  "ddMMyyyy-HHmmss";
+        
+        // NOTE: You have to use .aac, for some reason .m4a always saves an invalid file
+        // The following link is also a perfect example of tapping microphone input
+        // See here: http://stackoverflow.com/questions/24401609/avfoundation-malformed-m4a-file-format-using-avaudioengine-and-avaudiofile
+        let recordingName = formatter.stringFromDate(currentDateTime)+".wav"
+        let pathArray = [dirPath, recordingName]
+        let filePath = NSURL.fileURLWithPathComponents(pathArray)
+        print(filePath)
+        recordedAudioURL = filePath
+        
+// My settings
         var audioFileSettings = Dictionary<String, AnyObject>()
         audioFileSettings[AVFormatIDKey]                 = NSNumber(unsignedInt: kAudioFormatMPEG4AAC)
         audioFileSettings[AVNumberOfChannelsKey]         = 1
@@ -86,35 +182,47 @@ class CameraViewController: UIViewController {
         audioFileSettings[AVEncoderBitRatePerChannelKey] = 16
         audioFileSettings[AVEncoderAudioQualityKey]      = AVAudioQuality.Medium.rawValue
         
-        let inputNode = audioEngine.inputNode
+//        // SCRecorder audio config settings
+//        var audioFileSettings = Dictionary<String, AnyObject>()
+//        audioFileSettings[AVFormatIDKey]                 = NSNumber(unsignedInt: kAudioFormatMPEG4AAC)
+//        audioFileSettings[AVNumberOfChannelsKey]         = 1
+//        audioFileSettings[AVSampleRateKey]               = 44100.0
+//        audioFileSettings[AVEncoderBitRateKey] = NSNumber(unsignedLong: 128000)
+
+//        print(audioEngine.inputNode!.inputFormatForBus(0).settings)
         
         do {
-            try self.audioFile = AVAudioFile(forWriting: recordedAudioURL, settings: audioFileSettings)
-        } catch _ {
-            print("Failed to create audio file")
+            try self.audioFile = AVAudioFile(forWriting: recordedAudioURL, settings: audioEngine.inputNode!.inputFormatForBus(0).settings)
+        } catch let error as NSError {
+            print("Failed to create audio FILE")
+            print(error.localizedDescription)
+            
         }
-        
-        // Write the output of the input node to disk
-        inputNode!.installTapOnBus(0, bufferSize: 4096,
-            format: inputNode!.outputFormatForBus(0),
-            block: { (audioPCMBuffer : AVAudioPCMBuffer!, audioTime : AVAudioTime!) in
-                
-                do {
-                    print("Writing data to audio file...")
-                    try self.audioFile.writeFromBuffer(audioPCMBuffer)
-                } catch _ {
-                    print("Failed to create audio file")
-                }
-        })
     }
     
     func startRecordingAudio() {
         do {
             try audioEngine.start()
-        } catch _ {
+        } catch let error as NSError {
             print("AUDIO ENGINE CATCH")
+            print(error.localizedDescription)
+            
         }
-//        NSTimer.scheduledTimerWithTimeInterval(5.0, target: self, selector: "stopRecordingAudio", userInfo: nil, repeats: false)
+        
+        // Write the output of the input node to disk
+        audioEngine.inputNode!.installTapOnBus(0, bufferSize: 4096,
+            format: audioEngine.inputNode!.inputFormatForBus(0),
+            block: { (audioPCMBuffer : AVAudioPCMBuffer!, audioTime : AVAudioTime!) in
+                
+                do {
+                    print("Writing data to audio file...")
+                    try self.audioFile.writeFromBuffer(audioPCMBuffer)
+                } catch let error as NSError {
+                    print("Failed to create audio file")
+                    print(error.localizedDescription)
+
+                }
+        })
     }
     
     func stopRecordingAudio() {
@@ -127,19 +235,17 @@ class CameraViewController: UIViewController {
     
     func playRecordedAudio() {
         // Setup audio engine + player
+        let data = NSData(contentsOfURL: recordedAudioURL)
+
         do {
             try audioPlayer = AVAudioPlayer(contentsOfURL: recordedAudioURL.filePathURL!)
         }  catch let error as NSError {
-                print("Failed to create audio player")
+                print("Failed to create audio PLAYER")
                 print(error.localizedDescription)
+            
         }
         
-        pitchPlayer.scheduleFile(audioFile, atTime: nil, completionHandler: nil)
-        do {
-            try audioEngine.start()
-        } catch _ {
-        }
-        pitchPlayer.play()
+        audioPlayer.play()
     }
 
     func setupRecorder() {
@@ -171,8 +277,10 @@ class CameraViewController: UIViewController {
         // Start recording process
         
         // Custom audio
-        setupAudioEngine()
-        startRecordingAudio()
+//        setupAudioEngine()
+//        startRecordingAudio()
+        
+        initializeAudioEngine()
         
         // Video
         recorder.record()
@@ -204,6 +312,34 @@ class CameraViewController: UIViewController {
         print(segment.duration)
     }
     
+    func testAudioTools() {
+        
+        
+        let dirPath = NSSearchPathForDirectoriesInDomains(.DocumentDirectory,.UserDomainMask,true)[0] as String
+        
+        let currentDateTime = NSDate();
+        let formatter =  NSDateFormatter();
+        formatter.dateFormat =  "ddMMyyyy-HHmmss";
+        
+        // NOTE: You have to use .aac, for some reason .m4a always saves an invalid file
+        // The following link is also a perfect example of tapping microphone input
+        // See here: http://stackoverflow.com/questions/24401609/avfoundation-malformed-m4a-file-format-using-avaudioengine-and-avaudiofile
+        let recordingName = formatter.stringFromDate(currentDateTime)+".mp4"
+        let pathArray = [dirPath, recordingName]
+        let filePath = NSURL.fileURLWithPathComponents(pathArray)
+
+        
+        let asset = AVAsset(URL: recordedAudioURL)
+        let startTime = CMTimeMake(1, 10)
+        let maxDuration = CMTimeMake(recorder.maxRecordDuration.value, 10)
+        
+        self.audioToolsTestURL = filePath
+        SCAudioTools.mixAudio(asset, startTime: startTime, withVideo: recorder.session?.outputUrl, affineTransform: recorder.videoConfiguration.affineTransform, toUrl: filePath, outputFileType: AVFileTypeMPEG4, withMaxDuration: maxDuration) { (error) -> Void in
+            
+            self.showVideo()
+        }
+    }
+    
     func showVideo() {
         // Create an instance of SCPlayer
         player = SCPlayer()
@@ -211,7 +347,11 @@ class CameraViewController: UIViewController {
         
         // Set the current playerItem using an asset representing the segments
         // of an SCRecordSession
-        player!.setItemByAsset(recorder.session?.assetRepresentingSegments())
+        let data = NSData(contentsOfURL: self.audioToolsTestURL)
+        player!.setItemByUrl(self.audioToolsTestURL)
+        
+        print(recorder.session?.outputUrl)
+        
         
         // Create and add an AVPlayerLayer
         playerLayer = AVPlayerLayer(player: player)
@@ -219,6 +359,33 @@ class CameraViewController: UIViewController {
         
         // Start playing the asset and render it into the view
         player!.play()
+    }
+    
+    func exportVideo() {
+        
+        let asset = recorder.session?.assetRepresentingSegments()
+        let assetExportSession = SCAssetExportSession(asset: asset!)
+        assetExportSession.delegate = self
+        assetExportSession.outputUrl = recorder.session?.outputUrl
+        assetExportSession.outputFileType = AVFileTypeMPEG4
+        assetExportSession.videoConfiguration.preset = SCPresetLowQuality
+        assetExportSession.audioConfiguration.preset = SCPresetLowQuality
+        
+        // TODO: FIGURE OUT OVERLAY SETTINGS
+        assetExportSession.exportAsynchronouslyWithCompletionHandler { () -> Void in
+            if (assetExportSession.error == nil) {
+                
+                self.testAudioTools()
+                
+                // We have our video and/or audio file
+//                if let videoData = NSData(contentsOfURL: (assetExportSession.outputUrl)!) {
+//                    
+//                }
+            } else {
+                print("error exporting video")
+            }
+        }
+        
     }
 }
 
@@ -252,6 +419,8 @@ extension CameraViewController: SCRecorderDelegate {
         self.stopRecordingAudio()
         self.playRecordedAudio()
 //        self.addCustomAudioSegment()
+//        self.testAudioTools()
+//        self.exportVideo()
 //        self.showVideo()
     }
     

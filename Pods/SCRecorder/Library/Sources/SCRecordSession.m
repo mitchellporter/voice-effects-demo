@@ -475,6 +475,8 @@ NSString * const SCRecordSessionDocumentDirectory = @"DocumentDirectory";
     [self dispatchSyncOnSessionQueue:^{
         SCRecordSessionSegment *segment = nil;
         
+        NSLog(url.absoluteString);
+        
         if (error == nil) {
             segment = [SCRecordSessionSegment segmentWithURL:url info:info];
             [self addSegment:segment];

@@ -63,12 +63,13 @@
         channels = kSCAudioConfigurationDefaultNumberOfChannels;
     }
     
-    return @{
-             AVFormatIDKey : [NSNumber numberWithInt: self.format],
-             AVEncoderBitRateKey : [NSNumber numberWithUnsignedLong: bitrate],
-             AVNumberOfChannelsKey : [NSNumber numberWithInt: channels],
-             AVSampleRateKey : [NSNumber numberWithInt: sampleRate]
-             };
+    NSDictionary *config = @{
+                             AVFormatIDKey : [NSNumber numberWithInt: self.format],
+                             AVEncoderBitRateKey : [NSNumber numberWithUnsignedLong: bitrate],
+                             AVNumberOfChannelsKey : [NSNumber numberWithInt: channels],
+                             AVSampleRateKey : [NSNumber numberWithInt: sampleRate]
+                             };
+    return config;
 }
 
 @end
