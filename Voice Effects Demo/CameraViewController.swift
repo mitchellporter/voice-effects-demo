@@ -9,6 +9,12 @@
 import UIKit
 import SCRecorder
 
+
+
+
+
+
+
 class CameraViewController: UIViewController {
     
     @IBOutlet weak var previewView: UIView!
@@ -32,9 +38,13 @@ class CameraViewController: UIViewController {
     
     // Url of recording
     var recordedAudioURL: NSURL!
+    var processedAudioURL: NSURL!
+    var processedAudioFile: AVAudioFile!
     var audioToolsTestURL: NSURL!
     
     var reverb = AVAudioUnitReverb()
+    
+    var processingTracker = Bool()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -109,12 +119,21 @@ class CameraViewController: UIViewController {
         print(filePath)
         recordedAudioURL = filePath
         
+//        var audioFileSettings = Dictionary<String, AnyObject>()
+//        audioFileSettings[AVFormatIDKey]                 = NSNumber(unsignedInt: kAudioFormatMPEG4AAC)
+//        audioFileSettings[AVNumberOfChannelsKey]         = 1
+//        audioFileSettings[AVSampleRateKey]               = 44100.0
+//        audioFileSettings[AVEncoderBitRatePerChannelKey] = 16
+//        audioFileSettings[AVEncoderAudioQualityKey]      = AVAudioQuality.Medium.rawValue
+        
         var audioFileSettings = Dictionary<String, AnyObject>()
-        audioFileSettings[AVFormatIDKey]                 = NSNumber(unsignedInt: kAudioFormatMPEG4AAC)
-        audioFileSettings[AVNumberOfChannelsKey]         = 1
+        audioFileSettings[AVFormatIDKey]                 = NSNumber(unsignedInt: kAudioFormatLinearPCM)
+        audioFileSettings[AVNumberOfChannelsKey]         = 2
         audioFileSettings[AVSampleRateKey]               = 44100.0
-        audioFileSettings[AVEncoderBitRatePerChannelKey] = 16
-        audioFileSettings[AVEncoderAudioQualityKey]      = AVAudioQuality.Medium.rawValue
+        audioFileSettings[AVLinearPCMBitDepthKey] = 16
+        audioFileSettings[AVLinearPCMIsBigEndianKey]      = 0
+        audioFileSettings[AVLinearPCMIsFloatKey]      = 0
+
         
         
         
@@ -146,16 +165,6 @@ class CameraViewController: UIViewController {
         
         //        audioEngine.prepare()
         
-        pitchPlayer = AVAudioPlayerNode()
-        pitchPlayer.volume = 1.0
-        audioEngine.attachNode(pitchPlayer)
-        
-        timePitch = AVAudioUnitTimePitch()
-        timePitch.pitch = 1000 // In cents. The default value is 1.0. The range of values is -2400 to 2400
-        audioEngine.attachNode(timePitch) //The default value is 1.0. The range of supported values is 1/32 to 32.0.
-        
-        audioEngine.connect(pitchPlayer, to: timePitch, format: nil)
-        audioEngine.connect(timePitch, to: audioEngine.mainMixerNode, format: nil)
         
         let dirPath = NSSearchPathForDirectoriesInDomains(.DocumentDirectory,.UserDomainMask,true)[0] as String
         
@@ -166,31 +175,60 @@ class CameraViewController: UIViewController {
         // NOTE: You have to use .aac, for some reason .m4a always saves an invalid file
         // The following link is also a perfect example of tapping microphone input
         // See here: http://stackoverflow.com/questions/24401609/avfoundation-malformed-m4a-file-format-using-avaudioengine-and-avaudiofile
-        let recordingName = formatter.stringFromDate(currentDateTime)+".aac"
+        let recordingName = formatter.stringFromDate(currentDateTime)+".caf"
         let pathArray = [dirPath, recordingName]
         let filePath = NSURL.fileURLWithPathComponents(pathArray)
         print(filePath)
         recordedAudioURL = filePath
+
         
+//        var audioFileSettings = Dictionary<String, AnyObject>()
+//        audioFileSettings[AVFormatIDKey]                 = NSNumber(unsignedInt: kAudioFormatMPEG4AAC)
+//        audioFileSettings[AVNumberOfChannelsKey]         = 1
+//        audioFileSettings[AVSampleRateKey]               = 44100.0
+//        audioFileSettings[AVEncoderBitRatePerChannelKey] = 16
+//        audioFileSettings[AVEncoderAudioQualityKey]      = AVAudioQuality.Medium.rawValue
         
         var audioFileSettings = Dictionary<String, AnyObject>()
-        audioFileSettings[AVFormatIDKey]                 = NSNumber(unsignedInt: kAudioFormatMPEG4AAC)
-        audioFileSettings[AVNumberOfChannelsKey]         = 1
+        audioFileSettings[AVFormatIDKey]                 = NSNumber(unsignedInt: kAudioFormatLinearPCM)
+        audioFileSettings[AVNumberOfChannelsKey]         = 2
         audioFileSettings[AVSampleRateKey]               = 44100.0
-        audioFileSettings[AVEncoderBitRatePerChannelKey] = 16
-        audioFileSettings[AVEncoderAudioQualityKey]      = AVAudioQuality.Medium.rawValue
+        audioFileSettings[AVLinearPCMBitDepthKey] = 16
+        audioFileSettings[AVLinearPCMIsBigEndianKey]      = 0
+        audioFileSettings[AVLinearPCMIsFloatKey]      = 0
+
         
-        let inputNode = audioEngine.inputNode
+        
+        
         
         do {
             try self.audioFile = AVAudioFile(forWriting: recordedAudioURL, settings: audioFileSettings)
-        } catch _ {
+        } catch let error as NSError {
             print("Failed to create audio file")
+            print(error.localizedDescription)
+            
         }
+
+        
+        pitchPlayer = AVAudioPlayerNode()
+        pitchPlayer.volume = 1.0
+        audioEngine.attachNode(pitchPlayer)
+        
+        timePitch = AVAudioUnitTimePitch()
+        timePitch.pitch = 1000 // In cents. The default value is 1.0. The range of values is -2400 to 2400
+        audioEngine.attachNode(timePitch) //The default value is 1.0. The range of supported values is 1/32 to 32.0.
+        
+        audioEngine.connect(pitchPlayer, to: timePitch, format: audioFile.processingFormat)
+        audioEngine.connect(timePitch, to: audioEngine.mainMixerNode, format: audioFile.processingFormat)
+        
+        
+        
+        let inputNode = audioEngine.inputNode
+        
         
         // Write the output of the input node to disk
         inputNode!.installTapOnBus(0, bufferSize: 4096,
-            format: inputNode!.outputFormatForBus(0),
+            format: audioFile.processingFormat,
             block: { (audioPCMBuffer : AVAudioPCMBuffer!, audioTime : AVAudioTime!) in
                 
                 do {
@@ -231,13 +269,123 @@ class CameraViewController: UIViewController {
         }
         
         pitchPlayer.scheduleFile(audioFile, atTime: nil, completionHandler: nil)
-        do {
-            try audioEngine.start()
-        } catch _ {
-        }
+//        do {
+//            try audioEngine.start()
+//        } catch _ {
+//        }
+        
+        // Play the pitch audio
         pitchPlayer.play()
         
+        // Save the pitch audio
+        saveProcessedAudio()
 //        audioPlayer.play()
+    }
+    
+    func saveProcessedAudio() {
+        
+//        do {
+//            try AVAudioSession.sharedInstance().setCategory(AVAudioSessionCategoryPlayAndRecord)
+//            
+//            let ioBufferDuration = 128.0 / 44100.0
+//            
+//            try AVAudioSession.sharedInstance().setPreferredIOBufferDuration(ioBufferDuration)
+//            
+//        } catch {
+//            assertionFailure("AVAudioSession setup error: \(error)")
+//        }
+        
+        
+        let dirPath = NSSearchPathForDirectoriesInDomains(.DocumentDirectory,.UserDomainMask,true)[0] as String
+        
+        let currentDateTime = NSDate();
+        let formatter =  NSDateFormatter();
+        formatter.dateFormat =  "ddMMyyyy-HHmmss";
+        
+        // NOTE: You have to use .aac, for some reason .m4a always saves an invalid file
+        // The following link is also a perfect example of tapping microphone input
+        // See here: http://stackoverflow.com/questions/24401609/avfoundation-malformed-m4a-file-format-using-avaudioengine-and-avaudiofile
+        let recordingName = formatter.stringFromDate(currentDateTime)+".caf"
+        let pathArray = [dirPath, recordingName]
+        let filePath = NSURL.fileURLWithPathComponents(pathArray)
+        print(filePath)
+        processedAudioURL = filePath
+        
+        
+//        var audioFileSettings = Dictionary<String, AnyObject>()
+//        audioFileSettings[AVFormatIDKey]                 = NSNumber(unsignedInt: kAudioFormatMPEG4AAC)
+//        audioFileSettings[AVNumberOfChannelsKey]         = 1
+//        audioFileSettings[AVSampleRateKey]               = 44100.0
+//        audioFileSettings[AVEncoderBitRatePerChannelKey] = 16
+//        audioFileSettings[AVEncoderAudioQualityKey]      = AVAudioQuality.Medium.rawValue
+        
+        var audioFileSettings = Dictionary<String, AnyObject>()
+        audioFileSettings[AVFormatIDKey]                 = NSNumber(unsignedInt: kAudioFormatLinearPCM)
+        audioFileSettings[AVNumberOfChannelsKey]         = 2
+        audioFileSettings[AVSampleRateKey]               = 44100.0
+        audioFileSettings[AVLinearPCMBitDepthKey] = 16
+        audioFileSettings[AVLinearPCMIsBigEndianKey]      = 0
+        audioFileSettings[AVLinearPCMIsFloatKey]      = 0
+
+        
+        let inputNode = audioEngine.inputNode
+        
+        do {
+            try self.processedAudioFile = AVAudioFile(forWriting: processedAudioURL, settings: audioFileSettings)
+        } catch let error as NSError {
+            print("Failed to create processed audio file")
+            print(error.localizedDescription)
+            
+        }
+        
+        // Write the output of the input node to disk
+        audioEngine.mainMixerNode.installTapOnBus(0, bufferSize: 8192,
+            format: audioFile.processingFormat,
+            block: { (audioPCMBuffer : AVAudioPCMBuffer!, audioTime : AVAudioTime!) in
+                
+                
+                if (self.processedAudioFile.length) < (self.audioFile.length){//Let us know when to stop saving the file, otherwise saving infinitely
+                    
+                    do {
+                        print("Writing data to audio file...")
+                        try self.processedAudioFile.writeFromBuffer(audioPCMBuffer)
+                    } catch let error as NSError {
+                        print("Failed to write to processed audio file")
+                        print(error.localizedDescription)
+                        
+                    }
+                    
+                }else{
+                    self.audioEngine.mainMixerNode.removeTapOnBus(0)//if we dont remove it, will keep on tapping infinitely
+                    print("Did you like it? Please, vote up for my question")
+                    dispatch_async(dispatch_get_main_queue(), { () -> Void in
+                        self.playProcessedVideo()
+
+                    })
+                }
+        })
+    }
+    
+    func playProcessedVideo() {
+        print(AVAsset(URL: processedAudioURL).duration)
+        do {
+            try audioPlayer = AVAudioPlayer(contentsOfURL: processedAudioURL.filePathURL!)
+            
+        } catch let error as NSError {
+            print("Failed to create AVAudioPlayer")
+            print(error.localizedDescription)
+            
+        }
+        audioPlayer.delegate = self
+//        audioPlayer.play()
+        print(processedAudioFile.length)
+        
+        
+//        pitchPlayer.scheduleFile(processedAudioFile, atTime: nil, completionHandler: nil)
+//        pitchPlayer.play()
+        
+        
+        audioPlayer.play()
     }
 
     func setupRecorder() {
@@ -377,6 +525,32 @@ class CameraViewController: UIViewController {
                 print("error exporting video")
             }
         }
+        
+    }
+}
+
+extension CameraViewController: AVAudioPlayerDelegate {
+    func audioPlayerBeginInterruption(player: AVAudioPlayer) {
+        
+    }
+    
+    func audioPlayerDidFinishPlaying(player: AVAudioPlayer, successfully flag: Bool) {
+        
+    }
+    
+    func audioPlayerDecodeErrorDidOccur(player: AVAudioPlayer, error: NSError?) {
+        
+    }
+    
+    func audioPlayerEndInterruption(player: AVAudioPlayer) {
+        
+    }
+    
+    func audioPlayerEndInterruption(player: AVAudioPlayer, withFlags flags: Int) {
+        
+    }
+    
+    func audioPlayerEndInterruption(player: AVAudioPlayer, withOptions flags: Int) {
         
     }
 }
