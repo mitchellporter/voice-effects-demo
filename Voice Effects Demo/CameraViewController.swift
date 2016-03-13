@@ -132,11 +132,11 @@ class CameraViewController: UIViewController {
         audioEngine.reset()
         
         let pitchPlayer = AVAudioPlayerNode()
-        pitchPlayer.volume = 50
+        pitchPlayer.volume = 1.0
         audioEngine.attachNode(pitchPlayer)
         
         let timePitch = AVAudioUnitTimePitch()
-        timePitch.pitch = 1.0 // In cents. The default value is 1.0. The range of values is -2400 to 2400
+        timePitch.pitch = 1000 // In cents. The default value is 1.0. The range of values is -2400 to 2400
         audioEngine.attachNode(timePitch) //The default value is 1.0. The range of supported values is 1/32 to 32.0.
         
         audioEngine.connect(pitchPlayer, to: timePitch, format: nil)
