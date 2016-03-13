@@ -55,6 +55,7 @@ class CameraViewController: UIViewController {
         formatter.dateFormat =  "ddMMyyyy-HHmmss";
         
         // NOTE: You have to use .aac, for some reason .m4a always saves an invalid file
+        // The following link is also a perfect example of tapping microphone input
         // See here: http://stackoverflow.com/questions/24401609/avfoundation-malformed-m4a-file-format-using-avaudioengine-and-avaudiofile
         let recordingName = formatter.stringFromDate(currentDateTime)+".aac"
         let pathArray = [dirPath, recordingName]
