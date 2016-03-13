@@ -377,14 +377,6 @@ class CameraViewController: UIViewController {
             
         }
         audioPlayer.delegate = self
-//        audioPlayer.play()
-        print(processedAudioFile.length)
-        
-        
-//        pitchPlayer.scheduleFile(processedAudioFile, atTime: nil, completionHandler: nil)
-//        pitchPlayer.play()
-        
-        
         audioPlayer.play()
     }
 
