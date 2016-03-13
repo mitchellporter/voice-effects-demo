@@ -50,6 +50,7 @@ class CameraViewController: UIViewController {
         recorder.previewViewFrameChanged()
     }
     
+    // NOTE: Here is the stackoverflow link that provided this function: http://stackoverflow.com/a/35860199/3344977
     func initializeAudioEngine() {
         
         do {
@@ -63,14 +64,11 @@ class CameraViewController: UIViewController {
             assertionFailure("AVAudioSession setup error: \(error)")
         }
         
-        
-        
         let input = audioEngine.inputNode! //get the input node
         let output = audioEngine.outputNode //get the output node
         let format = input.inputFormatForBus(0) //format
         
-        
-        //applying some reverb effects
+        // Applying some reverb effects
         reverb.loadFactoryPreset(.MediumChamber)
         reverb.wetDryMix = 50
         audioEngine.attachNode(reverb)
