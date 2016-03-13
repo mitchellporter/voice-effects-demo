@@ -813,6 +813,7 @@ NSString * const SCRecordSessionDocumentDirectory = @"DocumentDirectory";
                 }
                 
                 audioTime = [self _appendTrack:audioAssetTrack toCompositionTrack:audioTrack atTime:audioTime withBounds:maxBounds];
+                
             }
             
             currentTime = composition.duration;

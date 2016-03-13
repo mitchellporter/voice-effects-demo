@@ -37,7 +37,7 @@ class CameraViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        setupAudioEngine()
+//        setupAudioEngine()
         setupRecorder()
         recorder.startRunning()
     }
@@ -106,8 +106,6 @@ class CameraViewController: UIViewController {
                     print("Failed to create audio file")
                 }
         })
-        
-        startRecordingAudio()
     }
     
     func startRecordingAudio() {
@@ -116,7 +114,7 @@ class CameraViewController: UIViewController {
         } catch _ {
             print("AUDIO ENGINE CATCH")
         }
-        NSTimer.scheduledTimerWithTimeInterval(5.0, target: self, selector: "stopRecordingAudio", userInfo: nil, repeats: false)
+//        NSTimer.scheduledTimerWithTimeInterval(5.0, target: self, selector: "stopRecordingAudio", userInfo: nil, repeats: false)
     }
     
     func stopRecordingAudio() {
@@ -124,7 +122,7 @@ class CameraViewController: UIViewController {
         audioEngine.stop()
         
         // Playback the audio we've captured
-        playRecordedAudio()
+//        playRecordedAudio()
     }
     
     func playRecordedAudio() {
@@ -169,13 +167,58 @@ class CameraViewController: UIViewController {
             session.fileType = AVFileTypeQuickTimeMovie
             recorder.session = session
         }
-        // Start recording
+        
+        // Start recording process
+        
+        // Custom audio
+        setupAudioEngine()
         startRecordingAudio()
+        
+        // Video
         recorder.record()
     }
     
     @IBAction func playAudioButtonPressed() {
         
+    }
+    
+    func addCustomAudioSegment() {
+        
+        let recordSession = recorder.session
+        
+        // Add a segment at the end
+        let segment = SCRecordSessionSegment(URL: recordedAudioURL, info: nil)
+        recordSession?.addSegment(segment)
+        
+        // Get duration of the whole record session
+        let duration = recordSession!.duration
+        
+        // Get a playable asset representing all the record segments
+        let asset = recordSession?.assetRepresentingSegments()
+        
+        // Get some information about a particular segment
+        let lastSegment = recordSession?.segments.last
+        
+        // Get duration of this segment
+        print(recordSession?.segments.count)
+        print(segment.duration)
+    }
+    
+    func showVideo() {
+        // Create an instance of SCPlayer
+        player = SCPlayer()
+        player!.loopEnabled = true
+        
+        // Set the current playerItem using an asset representing the segments
+        // of an SCRecordSession
+        player!.setItemByAsset(recorder.session?.assetRepresentingSegments())
+        
+        // Create and add an AVPlayerLayer
+        playerLayer = AVPlayerLayer(player: player)
+        playerLayer!.frame = view.bounds
+        
+        // Start playing the asset and render it into the view
+        player!.play()
     }
 }
 
@@ -204,6 +247,12 @@ extension CameraViewController: SCRecorderDelegate {
     
     func recorder(recorder: SCRecorder, didCompleteSegment segment: SCRecordSessionSegment?, inSession session: SCRecordSession, error: NSError?) {
         print("completed segement")
+        
+        // Stop recording the custom audio
+        self.stopRecordingAudio()
+        self.playRecordedAudio()
+//        self.addCustomAudioSegment()
+//        self.showVideo()
     }
     
     func recorder(recorder: SCRecorder, didBeginSegmentInSession session: SCRecordSession, error: NSError?) {
@@ -211,7 +260,7 @@ extension CameraViewController: SCRecorderDelegate {
     }
     
     func recorder(recorder: SCRecorder, didCompleteSession session: SCRecordSession) {
-        print("completed session")
+        print("completed session with output url: \(recorder)")
     }
     
     func recorder(recorder: SCRecorder, didReconfigureAudioInput audioInputError: NSError?) {
