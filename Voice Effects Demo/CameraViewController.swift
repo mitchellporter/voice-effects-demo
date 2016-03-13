@@ -72,19 +72,11 @@ class CameraViewController: UIViewController {
         
         let inputNode = audioEngine.inputNode
         
-        // by using .acc the output file can be played successfully
         do {
             try self.audioFile = AVAudioFile(forWriting: recordedAudioURL, settings: audioFileSettings)
         } catch _ {
             print("Failed to create audio file")
         }
-//        var audioFile = AVAudioFile(forWriting: url, settings: audioFileSettings, error: &error)
-        
-//        if error != nil {
-//            println("AVAudioFile error")
-//            println(error)
-//            return
-//        }
         
         // Write the output of the input node to disk
         inputNode!.installTapOnBus(0, bufferSize: 4096,
@@ -99,11 +91,7 @@ class CameraViewController: UIViewController {
                 }
         })
         
-        
-//        audioEngine.startAndReturnError(&error)
-        
         startRecordingAudio()
-//        NSTimer.scheduledTimerWithTimeInterval(2.0, target: self, selector: "startRecordingAudio", userInfo: nil, repeats: false)
     }
     
     func startRecordingAudio() {
