@@ -64,11 +64,14 @@ class CameraViewController: UIViewController {
             assertionFailure("AVAudioSession setup error: \(error)")
         }
         
+        
+        
         let input = audioEngine.inputNode! //get the input node
         let output = audioEngine.outputNode //get the output node
         let format = input.inputFormatForBus(0) //format
         
-        // Applying some reverb effects
+        
+        //applying some reverb effects
         reverb.loadFactoryPreset(.MediumChamber)
         reverb.wetDryMix = 50
         audioEngine.attachNode(reverb)
@@ -112,7 +115,7 @@ class CameraViewController: UIViewController {
         audioFileSettings[AVSampleRateKey]               = 44100.0
         audioFileSettings[AVEncoderBitRatePerChannelKey] = 16
         audioFileSettings[AVEncoderAudioQualityKey]      = AVAudioQuality.Medium.rawValue
-
+        
         
         
         do {
@@ -122,7 +125,7 @@ class CameraViewController: UIViewController {
             print(error.localizedDescription)
             
         }
-
+        
         
         audioEngine.inputNode?.installTapOnBus(0, bufferSize: 2048, format: format, block: { (buffer: AVAudioPCMBuffer!, time: AVAudioTime!) -> Void in
             
@@ -141,10 +144,7 @@ class CameraViewController: UIViewController {
     
     func setupAudioEngine() {
         
-//        audioEngine.prepare()
-        
-        let inputNode = audioEngine.inputNode
-
+        //        audioEngine.prepare()
         
         pitchPlayer = AVAudioPlayerNode()
         pitchPlayer.volume = 1.0
@@ -154,8 +154,8 @@ class CameraViewController: UIViewController {
         timePitch.pitch = 1000 // In cents. The default value is 1.0. The range of values is -2400 to 2400
         audioEngine.attachNode(timePitch) //The default value is 1.0. The range of supported values is 1/32 to 32.0.
         
-        audioEngine.connect(timePitch, to: pitchPlayer, format: nil)
-        audioEngine.connect(pitchPlayer, to: audioEngine.mainMixerNode, format: nil)
+        audioEngine.connect(pitchPlayer, to: timePitch, format: nil)
+        audioEngine.connect(timePitch, to: audioEngine.mainMixerNode, format: nil)
         
         let dirPath = NSSearchPathForDirectoriesInDomains(.DocumentDirectory,.UserDomainMask,true)[0] as String
         
@@ -166,13 +166,13 @@ class CameraViewController: UIViewController {
         // NOTE: You have to use .aac, for some reason .m4a always saves an invalid file
         // The following link is also a perfect example of tapping microphone input
         // See here: http://stackoverflow.com/questions/24401609/avfoundation-malformed-m4a-file-format-using-avaudioengine-and-avaudiofile
-        let recordingName = formatter.stringFromDate(currentDateTime)+".wav"
+        let recordingName = formatter.stringFromDate(currentDateTime)+".aac"
         let pathArray = [dirPath, recordingName]
         let filePath = NSURL.fileURLWithPathComponents(pathArray)
         print(filePath)
         recordedAudioURL = filePath
         
-// My settings
+        
         var audioFileSettings = Dictionary<String, AnyObject>()
         audioFileSettings[AVFormatIDKey]                 = NSNumber(unsignedInt: kAudioFormatMPEG4AAC)
         audioFileSettings[AVNumberOfChannelsKey]         = 1
@@ -180,47 +180,34 @@ class CameraViewController: UIViewController {
         audioFileSettings[AVEncoderBitRatePerChannelKey] = 16
         audioFileSettings[AVEncoderAudioQualityKey]      = AVAudioQuality.Medium.rawValue
         
-//        // SCRecorder audio config settings
-//        var audioFileSettings = Dictionary<String, AnyObject>()
-//        audioFileSettings[AVFormatIDKey]                 = NSNumber(unsignedInt: kAudioFormatMPEG4AAC)
-//        audioFileSettings[AVNumberOfChannelsKey]         = 1
-//        audioFileSettings[AVSampleRateKey]               = 44100.0
-//        audioFileSettings[AVEncoderBitRateKey] = NSNumber(unsignedLong: 128000)
-
-//        print(audioEngine.inputNode!.inputFormatForBus(0).settings)
+        let inputNode = audioEngine.inputNode
         
         do {
-            try self.audioFile = AVAudioFile(forWriting: recordedAudioURL, settings: audioEngine.inputNode!.inputFormatForBus(0).settings)
-        } catch let error as NSError {
-            print("Failed to create audio FILE")
-            print(error.localizedDescription)
-            
-        }
-    }
-    
-    func startRecordingAudio() {
-        do {
-            try audioEngine.start()
-        } catch let error as NSError {
-            print("AUDIO ENGINE CATCH")
-            print(error.localizedDescription)
-            
+            try self.audioFile = AVAudioFile(forWriting: recordedAudioURL, settings: audioFileSettings)
+        } catch _ {
+            print("Failed to create audio file")
         }
         
         // Write the output of the input node to disk
-        audioEngine.inputNode!.installTapOnBus(0, bufferSize: 4096,
-            format: audioEngine.inputNode!.inputFormatForBus(0),
+        inputNode!.installTapOnBus(0, bufferSize: 4096,
+            format: inputNode!.outputFormatForBus(0),
             block: { (audioPCMBuffer : AVAudioPCMBuffer!, audioTime : AVAudioTime!) in
                 
                 do {
                     print("Writing data to audio file...")
                     try self.audioFile.writeFromBuffer(audioPCMBuffer)
-                } catch let error as NSError {
+                } catch _ {
                     print("Failed to create audio file")
-                    print(error.localizedDescription)
-
                 }
         })
+    }
+    
+    func startRecordingAudio() {
+        do {
+            try audioEngine.start()
+        } catch _ {
+            print("AUDIO ENGINE CATCH")
+        }
     }
     
     func stopRecordingAudio() {
@@ -275,10 +262,10 @@ class CameraViewController: UIViewController {
         // Start recording process
         
         // Custom audio
-//        setupAudioEngine()
-//        startRecordingAudio()
+        setupAudioEngine()
+        startRecordingAudio()
         
-        initializeAudioEngine()
+//        initializeAudioEngine()
         
         // Video
         recorder.record()
